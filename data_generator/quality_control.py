@@ -70,10 +70,10 @@ class EmailQualityController:
 # URUCHOMIENIE KONTROLI
 # ==========================================
 try:
-    kontroler_spam = EmailQualityController("dataset_spam_qwen-qwen3-32b_20260511_151955.jsonl")
+    kontroler_spam = EmailQualityController("phishing_dataset.jsonl")
     print(kontroler_spam.generuj_raport())
 
-    kontroler_ham = EmailQualityController("dataset_ham_qwen-qwen3-32b_20260511_151955.jsonl")
-    print(kontroler_ham.generuj_raport())
+    # kontroler_ham = EmailQualityController("dataset_ham_qwen-qwen3-32b_20260511_151955.jsonl")
+    # print(kontroler_ham.generuj_raport())
 except FileNotFoundError as e:
     print(f"Najpierw wygeneruj pliki! Błąd: {e}")
