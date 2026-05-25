@@ -66,14 +66,22 @@ class IClassifier(ABC):
     """
 
     @abstractmethod
-    def classify(self, text: str, config: Optional[ClassifyConfig] = None) -> str:
-        """Klasyfikuje pojedynczą wiadomość tekstową
-        i zwraca przewidywaną etykietę."""
+    def fit(self, x_train: list[str], y_train: list[int]) -> None:
+        """Trenuje klasyfikator na dostarczonych danych treningowych."""
 
     @abstractmethod
-    def classify_batch(self, texts: list[str], config: Optional[ClassifyConfig] = None) -> list[str]:
-        """Klasyfikuje listę wiadomości i zwraca listę
-        odpowiadających im etykiet."""
+    def predict(self, texts: list[str]) -> list[int]:
+        """Zwraca przewidywane etykiety 0/1 dla zbioru tekstów."""
+
+    # @abstractmethod
+    # def classify(self, text: str, config: Optional[ClassifyConfig] = None) -> str:
+    #     """Klasyfikuje pojedynczą wiadomość tekstową
+    #     i zwraca przewidywaną etykietę."""
+
+    # @abstractmethod
+    # def classify_batch(self, texts: list[str], config: Optional[ClassifyConfig] = None) -> list[str]:
+    #     """Klasyfikuje listę wiadomości i zwraca listę
+    #     odpowiadających im etykiet."""
 
 
 class ITrainer(ABC):
