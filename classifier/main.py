@@ -43,41 +43,60 @@ def evaluate_model(name: str, y_true: list, y_pred: list) -> dict:
         "f1": f1_score(y_true, y_pred, zero_division=0),
     }
 
+def print_results_table(all_results: dict):
+    """
+    all_results: { "dataset_name": [{"name": ..., "accuracy": ..., "precision": ..., "recall": ..., "f1": ...}] }
+    """
+    for dataset, results in all_results.items():
+        print(f"\nDataset: {dataset}")
+        df = pd.DataFrame(results).set_index("name")
+        df.index.name = "Model"
+        print(df[["accuracy", "precision", "recall", "f1"]].round(4).to_string())
+
 
 def main() -> None:
-    config = DataConfig(
-        csv_path=Path("data/spam_email_dataset.csv"),
-        text_column="email_text",
-        label_column="label",
-        test_size=0.2,
-        seed=42,
-    )
-
-    loader = CsvDataLoader()
-    raw_data = loader.load(config)
-    data = loader.preprocess(raw_data, config)
-    x_train, x_test, y_train, y_test = loader.split(data, config)
-
-    classifiers = build_classifiers()
-    results = []
-
-    for classifier in classifiers:
-        print(f"Training {classifier.name}...")
-        classifier.fit(x_train, y_train)
-        y_pred = classifier.predict(x_test)
-        metrics = evaluate_model(classifier.name, y_test, y_pred)
-        results.append(metrics)
-
-    results = sorted(results, key=lambda item: item["f1"], reverse=True)
-
-    print("\nModel comparison results:")
-    for metrics in results:
-        print(
-            f"{metrics['name']}: accuracy={metrics['accuracy']:.4f}, "
-            f"precision={metrics['precision']:.4f}, recall={metrics['recall']:.4f}, "
-            f"f1={metrics['f1']:.4f}"
+    config1 = DataConfig(
+            csv_path=Path(f"data/spam_email_dataset.csv"),
+            text_column="email_text",
+            label_column="label",
+            test_size=0.2,
+            seed=42,
         )
+    config2 = DataConfig(
+            csv_path=Path(f"data/email_dataset_100k.csv"),
+            text_column="body_plain",
+            label_column="label",
+            test_size=0.2,
+            seed=42,
+        )
+    config3 = DataConfig(
+            csv_path=Path(f"data/llm_spam_email_dataset.csv"),
+            text_column="email_text",
+            label_column="label",
+            test_size=0.2,
+            seed=42,
+        )
+    all_results = {}
+    for config in [config1, config2, config3]:
+        print(f"Evaluating classifiers on {config.csv_path.name}...")
+        loader = CsvDataLoader()
+        raw_data = loader.load(config)
+        data = loader.preprocess(raw_data, config)
+        x_train, x_test, y_train, y_test = loader.split(data, config)
 
+        classifiers = build_classifiers()
+        results = []
+
+        for classifier in classifiers:
+            print(f"Training {classifier.name}...")
+            classifier.fit(x_train, y_train)
+            y_pred = classifier.predict(x_test)
+            metrics = evaluate_model(classifier.name, y_test, y_pred)
+            results.append(metrics)
+
+        results = sorted(results, key=lambda item: item["f1"], reverse=True)
+        all_results[config.csv_path.name] = results
+    print_results_table(all_results)
 
 if __name__ == "__main__":
     main()
