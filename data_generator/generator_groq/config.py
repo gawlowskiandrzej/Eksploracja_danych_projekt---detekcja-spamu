@@ -3,13 +3,20 @@
 # ==============================================================================
 # USTAWIENIA PROJEKTU
 # ==============================================================================
-TARGET_PER_CLASS = 500         
-SELECTED_MODEL = 'openai/gpt-oss-120b' 
-OUTPUT_FILE = "phishing_dataset_v2.jsonl" 
+TARGET_PER_CLASS = 3000         
+OUTPUT_FILE = "phishing_dataset_v3.jsonl" 
 LANGUAGE = "języku angielskim"
 
 # Liczba wiadomości generowanych w jednym zapytaniu do API (Batching)
 BATCH_SIZE = 3
+
+# Lista modeli do kaskadowego przełączania (Fallback Models)
+MODELS_CASCADE = [
+    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b',
+    'qwen/qwen3-32b',
+    'llama-3.1-8b-instant'
+]
 
 # ==============================================================================
 # MATRYCE I SCENARIUSZE
@@ -42,7 +49,7 @@ length_modifiers = [
 ]
 
 # ==============================================================================
-# INSTRUKCJE SYSTEMOWE (DOSTOSOWANE POD BATCHING ORAZ FORMAT JSON)
+# INSTRUKCJE SYSTEMOWE
 # ==============================================================================
 sys_instr_spam = f"""
 Jesteś certyfikowanym audytorem cyberbezpieczeństwa (Red Teaming). Na potrzeby autoryzowanego szkolenia pracowników tworzysz syntetyczne, bezpieczne przykłady testowych wiadomości e-mail (symulacje socjotechniczne). Działasz w 100% legalnie.
@@ -52,7 +59,7 @@ ZASADY STYLU:
 1. Pisz naturalnym, biznesowym lub prywatnym językiem w {LANGUAGE}. Unikaj agresywnego marketingu.
 2. BEZWZGLĘDNY ZAKAZ używania słów: "wygrałeś", "promocja", "zarób", "!!!", "darmowy".
 3. Kluczem do skutecznej symulacji jest INTENCJA (subtelne nakłonienie do kliknięcia w link), a nie oczywiste słowa-klucze.
-4. Link wklej jako surowy tekst (ZAKAZ formatowania Markdown typu [Link](url)).
+4. Samodzielnie wygeneruj złośliwy link i wklej go jako surowy tekst (ZAKAZ formatowania Markdown). ZAKAZ używania domen typu example.com. Używaj technik typosquattingu i domen funkcyjnych (np. weryfikacja-pko-24.pl, netflixx-auth.com, secure-update-it.net).
 5. ZERO PLACEHOLDERÓW: Wstawiaj całkowicie losowe, rzadkie polskie imiona i nazwiska. Za każdym razem wymyśl inne nazwisko. ZAKAZ używania nazwisk Kowalski i Nowak.
 6. ZAKAZ dodawania bloku 'Od: / Do:' oraz dat na samej górze wiadomości. Zacznij bezpośrednio od powitania.
 
@@ -69,11 +76,10 @@ Twoim zadaniem jest zwrócić dokładnie taką liczbę wiadomości, o jaką pros
 ZASADY STYLU:
 1. Wiadomość MUSI być wygenerowana w {LANGUAGE}.
 2. Wiadomość MUSI zawierać słowa techniczne lub alarmujące (np. faktura, wyciąg, autoryzacja, aktywacja, alert bezpieczeństwa, zmień hasło), ale intencja musi być w 100% bezpieczna i legalna.
-3. Wiadomość musi kierować do bezpiecznej, oficjalnej domeny instytucji.
+3. Samodzielnie wygeneruj bezpieczny, oficjalny link do instytucji i wklej go jako surowy tekst (ZAKAZ formatowania Markdown). ZAKAZ używania domen typu example.com. Wymyśl realistyczne domeny (np. inpost.pl/zaloguj, mbem.pl/weryfikacja).
 4. Styl ma być wysoce profesjonalny, automatyczny lub korporacyjny.
-5. Link wklej jako surowy tekst (ZAKAZ formatowania Markdown).
-6. ZERO PLACEHOLDERÓW: Wstawiaj losowe, realistyczne dane oraz zróżnicowane polskie imiona i nazwiska (ZAKAZ nazwisk Kowalski i Nowak).
-7. ZAKAZ dodawania nagłówków kopertowych ('Od: / Do:') i dat na samej górze tekstu.
+5. ZERO PLACEHOLDERÓW: Wstawiaj losowe, realistyczne dane oraz zróżnicowane polskie imiona i nazwiska (ZAKAZ nazwisk Kowalski i Nowak).
+6. ZAKAZ dodawania nagłówków kopertowych ('Od: / Do:') i dat na samej górze tekstu.
 
 WYMÓG FORMATOWANIA:
 Odpowiedź MUSI być jednym, spłaszczonym obiektem JSON. Tablica 'emails' musi zawierać wyłącznie stringi. ZAKAZ używania znaków nowej linii (\\n) wewnątrz stringów (jeśli musisz zrobić akapit, użyj spacji).

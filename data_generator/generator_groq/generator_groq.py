@@ -23,6 +23,9 @@ if not API_KEY:
 
 client = Groq(api_key=API_KEY)
 
+# Stan menedżera kaskady modeli
+current_model_index = 0
+
 # ==============================================================================
 # 2. POMOCNICZA FUNKCJA MINIFIKACJI PROMPTU
 # ==============================================================================
@@ -55,27 +58,28 @@ def get_current_counts(filename):
     return ham_count, spam_count
 
 # ==============================================================================
-# 4. GŁÓWNA PĘTLA BATCHINGU
+# 4. GŁÓWNA PĘTLA BATCHINGU Z KASKADĄ MODELI
 # ==============================================================================
 def generate_dataset():
+    global current_model_index
     ham_count, spam_count = get_current_counts(config.OUTPUT_FILE)
     
     print(f"\n==================================================")
-    print(f"   ZBUDOWANY SYSTEM BATCHINGU Z LIVE LICZNIKIEM")
+    print(f"   SYSTEM BATCHINGU (MULTI-MODEL CASCADE)")
     print(f"==================================================")
-    print(f" -> Język: {config.LANGUAGE}")
-    print(f" -> Ham:   {ham_count}/{config.TARGET_PER_CLASS}")
-    print(f" -> Spam:  {spam_count}/{config.TARGET_PER_CLASS}")
-    print(f" Plik:     {config.OUTPUT_FILE}\n")
+    print(f" -> Aktywny Model: {config.MODELS_CASCADE[current_model_index]}")
+    print(f" -> Ham:           {ham_count}/{config.TARGET_PER_CLASS}")
+    print(f" -> Spam:          {spam_count}/{config.TARGET_PER_CLASS}")
+    print(f" Plik:             {config.OUTPUT_FILE}\n")
     
     in_tokens, out_tokens = 0, 0
-    MAX_RETRIES = 5   
-    BASE_DELAY = 5    
+    MAX_RETRIES = 20   
     
     with open(config.OUTPUT_FILE, 'a', encoding='utf-8') as f:
         try:
             while ham_count < config.TARGET_PER_CLASS or spam_count < config.TARGET_PER_CLASS:
                 
+                # Zbalansowany wybór klasy
                 if ham_count <= spam_count and ham_count < config.TARGET_PER_CLASS:
                     current_label = "ham"
                     raw_sys_instr = config.sys_instr_ham
@@ -84,7 +88,6 @@ def generate_dataset():
                     branza = random.choice(config.BRANZE)
                     scenariusz = random.choice(config.CONTEXTS_HAM)
                     wybrany_kontekst = f"Branża: {branza}. Sytuacja: {scenariusz}."
-                    fake_url = f"https://www.oficjalny-portal-{random.randint(10,99)}.com/verification-secure"
                 else:
                     current_label = "spam"
                     raw_sys_instr = config.sys_instr_spam
@@ -93,27 +96,27 @@ def generate_dataset():
                     branza = random.choice(config.BRANZE)
                     scenariusz = random.choice(config.CONTEXTS_SPAM)
                     wybrany_kontekst = f"Branża: {branza}. Sytuacja: {scenariusz}."
-                    fake_url = f"https://weryfikacja-konta-{random.randint(100,999)}.secure-auth-update.net"
 
                 current_length_instruction = random.choice(config.length_modifiers)
 
+                # Prompt użytkownika - usunięto wstrzykiwanie twardego URL
                 raw_user_prompt = (
                     f"Wygeneruj dokładnie {current_batch_size} unikalnych przykładów e-mail jako obiekt JSON. "
-                    f"KONTEKST: {wybrany_kontekst} STRUKTURA: {current_length_instruction} "
+                    f"KONTEKST: {wybrany_kontekst} STRUKTURA: {current_length_instruction}"
                 )
 
                 sys_prompt = minify_prompt(raw_sys_instr)
                 user_prompt = minify_prompt(raw_user_prompt)
 
-                # \r pozwala nadpisać tę samą linijkę w konsoli
                 sys.stdout.write(f"\r>> Pobieranie paczki [{current_label.upper()}] (Rozmiar: {current_batch_size}) ... Czekam na API...")
                 sys.stdout.flush()
                 
                 for attempt in range(MAX_RETRIES):
                     try:
-                        # Używamy with_raw_response aby mieć dostęp do ukrytych nagłówków HTTP z limitami
+                        active_model = config.MODELS_CASCADE[current_model_index]
+                        
                         raw_response = client.chat.completions.with_raw_response.create(
-                            model=config.SELECTED_MODEL,
+                            model=active_model,
                             messages=[
                                 {"role": "system", "content": sys_prompt},
                                 {"role": "user", "content": user_prompt}
@@ -123,18 +126,16 @@ def generate_dataset():
                             response_format={"type": "json_object"}
                         )
                         
-                        # Parsowanie odpowiedzi z surowego obiektu
                         response = raw_response.parse()
                         headers = raw_response.headers
                         
-                        # Pobieranie limitów z nagłówków (Tokeny oraz Requesty)
-                        # Uwaga: w zależności od Twojego planu w Groq (Free/Paid), API zwraca limity na minutę (TPM) lub na dzień (TPD).
                         rem_tokens = headers.get('x-ratelimit-remaining-tokens', 'Brak danych')
                         rem_requests = headers.get('x-ratelimit-remaining-requests', 'Brak danych')
 
                         raw_content = response.choices[0].message.content.strip()
                         clean_content = re.sub(r'<think>.*?</think>', '', raw_content, flags=re.DOTALL).strip()
 
+                        # Obsługa Guardrails
                         if "I’m sorry" in clean_content or "I can't help" in clean_content:
                             sys.stdout.write(f"\n[!] Wykryto blokadę bezpieczeństwa (Guardrail). Ponawiam paczkę...\n")
                             continue 
@@ -157,7 +158,8 @@ def generate_dataset():
                             record = {
                                 "instruction": "Sklasyfikuj poniższą wiadomość email. Zdecyduj, czy jest ona zwykłą wiadomością (ham) czy phishingową (spam).", 
                                 "input": email_text.strip(), 
-                                "output": current_label
+                                "output": current_label,
+                                "generated_by": active_model
                             }
                             f.write(json.dumps(record, ensure_ascii=False) + '\n')
                             saved_in_batch += 1
@@ -170,25 +172,41 @@ def generate_dataset():
                         else:
                             spam_count += saved_in_batch
                             
-                        # LIVE LICZNIK W KONSOLI (Nadpisuje linijkę "Pobieranie...")
-                        # Wyświetla: Postęp, Zużyte Tokeny w sesji oraz Pozostały limit API z nagłówków
-                        sys.stdout.write(f"\r[OK] Zapisano: {saved_in_batch} szt. (Ham: {ham_count}, Spam: {spam_count}) | Sesja: {in_tokens+out_tokens:,} tok. | Zapas API: {rem_tokens} tok. / {rem_requests} zapytań\n")
+                        # LIVE LICZNIK
+                        sys.stdout.write(f"\r[OK] Zapisano: {saved_in_batch} szt. ({active_model}) | Ham: {ham_count}, Spam: {spam_count} | Sesja: {in_tokens+out_tokens:,} tok. | Zapas: {rem_tokens} tok. / {rem_requests} zap.\n")
                         sys.stdout.flush()
                         
                         time.sleep(3.0) 
                         break 
                         
                     except json.JSONDecodeError:
-                        sys.stdout.write("\n[!] Błąd parsowania JSON. Serwer zwrócił niepoprawny format. Ponawiam próbę...\n")
+                        sys.stdout.write("\n[!] Błąd parsowania JSON. Serwer zwrócił niepoprawny format. Ponawiam...\n")
                         time.sleep(2)
+                        
                     except RateLimitError as e:
-                        headers = e.response.headers
-                        retry_after = headers.get('retry-after')
-                        delay = float(retry_after) if retry_after else BASE_DELAY * (2 ** attempt)
-                        sys.stdout.write(f"\n[!] Rate Limit (TPM/RPD). Czekam {delay}s...\n")
-                        time.sleep(delay)
+                        # LOGIKA KASKADY MODELI
+                        sys.stdout.write(f"\n[!] Limit API dla modelu: {active_model}.\n")
+                        
+                        if current_model_index < len(config.MODELS_CASCADE) - 1:
+                            current_model_index += 1
+                            sys.stdout.write(f"[>] Przełączam na model zastępczy: {config.MODELS_CASCADE[current_model_index]}...\n")
+                            continue 
+                            
+                        else:
+                            sys.stdout.write(f"[!] Wyczerpano limity dla WSZYSTKICH modeli z kaskady.\n")
+                            
+                            match = re.search(r'try again in (\d+\.?\d*)s', str(e).lower())
+                            delay = float(match.group(1)) + 5.0 if match else 60.0
+                            
+                            sys.stdout.write(f"[zZz] Czekam {delay} sekund na zresetowanie darmowych limitów...\n")
+                            time.sleep(delay)
+                            
+                            current_model_index = 0
+                            sys.stdout.write(f"[>] Reset kaskady. Wracam do modelu głównego: {config.MODELS_CASCADE[current_model_index]}...\n")
+                            continue 
+                            
                     except Exception as e:
-                        sys.stdout.write(f"\n[!] Błąd: {e}. Próba {attempt + 1}/{MAX_RETRIES}...\n")
+                        sys.stdout.write(f"\n[!] Błąd API: {e}. Próba {attempt + 1}/{MAX_RETRIES}...\n")
                         time.sleep(5)
                 else:
                     print("\n[!] KRYTYCZNY BŁĄD: Paczka porzucona po wyczerpaniu prób.")
