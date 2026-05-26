@@ -39,21 +39,26 @@ class CsvDataLoader(IDataLoader):
             )
         return df
 
-    def split(self, data, config: DataConfig):
-        return train_test_split(
-            data[config.text_column],
-            data[config.label_column],
+    def split(self, data, config: DataConfig) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Zwraca (df_train, df_test) — oba jako DataFrame z oryginalnymi kolumnami."""
+        train, test = train_test_split(
+            data,
             test_size=config.test_size,
             random_state=config.seed,
             stratify=data[config.label_column],
         )
-    def to_lists(
-        self, data: pd.DataFrame, config: DataConfig
-    ) -> tuple[list[str], list[int]]:
+        return train.reset_index(drop=True), test.reset_index(drop=True)
+    def to_lists(self, data: pd.DataFrame, config: DataConfig) -> tuple[list[str], list[int]]:
         """
-        Konwertuje DataFrame na (texts, labels) gotowe do IClassifier.
-        Etykiety: spam=1, ham=0.
+        Konwertuje DataFrame na (texts, labels: spam=1, ham=0).
+        Obsługuje etykiety jako int (1/0) i string ('spam'/'ham').
         """
         texts = data[config.text_column].tolist()
-        labels = (data[config.label_column] == "spam").astype(int).tolist()
+        col = data[config.label_column]
+        if col.dtype == object:
+            # stringi: 'spam' → 1, 'ham' → 0
+            labels = col.map({"spam": 1, "ham": 0}).astype(int).tolist()
+        else:
+            # już inty
+            labels = col.astype(int).tolist()
         return texts, labels

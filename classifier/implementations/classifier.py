@@ -77,29 +77,27 @@ class LlamaSpamClassifier(IClassifier):
     def predict(self, texts: list[str]) -> list[int]:
         """
         Klasyfikuje listę tekstów.
-        Zwraca: spam=1, ham=0, unknown=-1 (niejednoznaczna odpowiedź modelu).
-        threshold z ClassifyConfig stosowany jako fallback dla 'unknown'.
+        Zwraca: spam=1, ham=0.
+        Gdy model zwróci niejednoznaczną odpowiedź, stosowany jest config.threshold jako fallback.
         """
         self._require_fitted()
         predictions: list[int] = []
-
+ 
         for i, text in enumerate(texts):
             prompt    = self._prompt_builder.build(text)
             response  = self._llama.generate(prompt, self._config)
-            label_str = self._prompt_builder.parse(response)
-
-            if label_str == "unknown":
-                # Fallback oparty na threshold — domyślnie klasyfikuj jako ham
-                label_int = 1 if self._config.threshold <= 0.5 else 0
+            label_int = self._prompt_builder.parse(response)
+ 
+            if label_int is None:
+                # Fallback oparty na threshold — domyślnie ham (0) gdy threshold >= 0.5
+                label_int = 1 if self._config.threshold < 0.5 else 0
                 logger.debug("Fallback threshold dla tekstu %d → %d", i, label_int)
-            else:
-                label_int = _LABEL_TO_INT[label_str]
-
+ 
             predictions.append(label_int)
-
+ 
             if (i + 1) % 100 == 0:
                 logger.info("Sklasyfikowano %d / %d", i + 1, len(texts))
-
+ 
         return predictions
 
     def classify(self, text: str) -> str:

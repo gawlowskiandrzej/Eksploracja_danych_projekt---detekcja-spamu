@@ -73,7 +73,7 @@ def print_results_table(all_results: dict):
 
 def main() -> None:
     config1 = DataConfig(
-            csv_path=Path(f"data/spam_email_dataset.csv"),
+            csv_path=Path(f"data/spam_email_dataset_half.csv"),
             text_column="email_text",
             label_column="label",
             test_size=0.2,
@@ -99,7 +99,9 @@ def main() -> None:
     #     loader = CsvDataLoader()
     #     raw_data = loader.load(config)
     #     data = loader.preprocess(raw_data, config)
-    #     x_train, x_test, y_train, y_test = loader.split(data, config)
+    #     df_train, df_test = loader.split(raw_data, config)
+    #     x_test, y_test = loader.to_lists(df_test, config)
+    #     x_train, y_train = loader.to_lists(df_train, config)
 
     #     classifiers = build_classifiers()
     #     results = []
@@ -120,9 +122,9 @@ def main() -> None:
         load_in_4bit=True,
     )
     llama_train_cfg = TrainingConfig(
-        epochs=3,
+        epochs=1,
         learning_rate=2e-4,
-        batch_size=4,
+        batch_size=8,
         lora_r=16,
         lora_alpha=32,
         output_dir="checkpoints",
@@ -133,25 +135,19 @@ def main() -> None:
         max_new_tokens=32,
     )
     loader = CsvDataLoader()
-    raw_data = loader.load(config1)
+    raw_data = loader.load(config3)
     #data = loader.preprocess(raw_data, config1)
-    x_train, x_test, y_train, y_test = loader.split(raw_data, config1)
-    train_df = pd.DataFrame({
-        config1.text_column: x_train,
-        config1.label_column: y_train,
-    })
-    test_df = pd.DataFrame({
-        config1.text_column: x_test,
-        config1.label_column: y_test,
-    })
+    df_train, df_test = loader.split(raw_data, config3)
+    x_test, y_test = loader.to_lists(df_test, config3)
     llama = setup_model(llama_cfg)
     prompt_builder = LlamaSpamPromptBuilder()
-    train(llama, prompt_builder, train_df, test_df, llama_train_cfg, config1)
+    # train(llama, prompt_builder, train_df, test_df, llama_train_cfg, config1)
     
     classifier = LlamaSpamClassifier(llama, prompt_builder, classify_cfg)
     classifier.fit([], [], adapter_path=f"{llama_train_cfg.output_dir}/final")
-    x_test, y_test = loader.to_lists(test_df, config1)
-    y_pred = classifier.predict(x_test)
-    classification_report(y_test, y_pred, target_names=["ham", "spam"])
+    x_test, y_test = loader.to_lists(df_test, config3)
+    sample = 50
+    y_pred = classifier.predict(x_test[:sample])
+    print(classification_report(y_test[:sample], y_pred, target_names=["ham", "spam"]))
 if __name__ == "__main__":
     main()

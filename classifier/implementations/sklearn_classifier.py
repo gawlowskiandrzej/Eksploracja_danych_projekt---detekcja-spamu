@@ -27,12 +27,12 @@ class SklearnClassifier(IClassifier):
         predictions = self.pipeline.predict(texts)
         return [int(pred) for pred in predictions]
 
-    # def classify(self, text: str, config: Optional[ClassifyConfig] = None) -> str:
-    #     prediction = self.pipeline.predict([text])[0]
-    #     return "spam" if int(prediction) == 1 else "ham"
+    def classify(self, text: str, config: Optional[ClassifyConfig] = None) -> str:
+        prediction = self.pipeline.predict([text])[0]
+        return "spam" if int(prediction) == 1 else "ham"
 
-    # def classify_batch(
-    #     self, texts: list[str], config: Optional[ClassifyConfig] = None
-    # ) -> list[str]:
-    #     predictions = self.pipeline.predict(texts)
-    #     return ["spam" if int(pred) == 1 else "ham" for pred in predictions]
+    def classify_batch(
+        self, texts: list[str], config: Optional[ClassifyConfig] = None
+    ) -> list[str]:
+        predictions = self.pipeline.predict(texts)
+        return ["spam" if int(pred) == 1 else "ham" for pred in predictions]
