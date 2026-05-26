@@ -4,3 +4,10 @@ matplotlib
 scikit-learn
 python-dotenv
 kagglehub[pandas-datasets]
+torch
+transformers
+datasets
+peft
+trl
+accelerate
+bitsandbytes

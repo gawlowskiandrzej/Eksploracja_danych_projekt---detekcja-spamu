@@ -41,9 +41,19 @@ class CsvDataLoader(IDataLoader):
 
     def split(self, data, config: DataConfig):
         return train_test_split(
-            data["text"],
-            data["label"],
+            data[config.text_column],
+            data[config.label_column],
             test_size=config.test_size,
             random_state=config.seed,
-            stratify=data["label"],
+            stratify=data[config.label_column],
         )
+    def to_lists(
+        self, data: pd.DataFrame, config: DataConfig
+    ) -> tuple[list[str], list[int]]:
+        """
+        Konwertuje DataFrame na (texts, labels) gotowe do IClassifier.
+        Etykiety: spam=1, ham=0.
+        """
+        texts = data[config.text_column].tolist()
+        labels = (data[config.label_column] == "spam").astype(int).tolist()
+        return texts, labels

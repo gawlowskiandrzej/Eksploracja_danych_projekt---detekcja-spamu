@@ -2,3 +2,4 @@
 *.zip
 __pycache__/
 .ipynb_checkpoints/
+llama_model/

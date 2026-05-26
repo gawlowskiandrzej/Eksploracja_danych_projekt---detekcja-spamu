@@ -17,7 +17,7 @@ class ModelConfig:
 
 @dataclass
 class TrainingConfig:
-    epochs: int = 3
+    epochs: int = 1
     learning_rate: float = 2e-4
     batch_size: int = 4
     lora_r: int = 16

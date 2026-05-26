@@ -1,5 +1,25 @@
 # Eksploracja_danych_projekt---detekcja-spamu
 
+## Instalacja zaleznosci
+
+Zainstaluj pakiety w tym samym interpreterze Pythona, ktorego uzywasz do
+uruchamiania projektu:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Jesli blad `No module named peft` pojawia sie w notebooku, sprawdz interpreter
+aktywny w kernelu:
+
+```python
+import sys
+print(sys.executable)
+```
+
+Nastepnie uruchom instalacje przez ten sam interpreter albo zmien kernel
+notebooka na srodowisko, w ktorym zaleznosci sa juz zainstalowane.
+
 ## Pobranie datasetu Kaggle
 
 Kod pobierania znajduje sie w notebooku `spam_dataset_quality_analysis.ipynb`.
