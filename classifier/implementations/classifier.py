@@ -40,10 +40,6 @@ class LlamaSpamClassifier(IClassifier):
         self._config = classify_config or ClassifyConfig()
         self._is_fitted = False
 
-    # ------------------------------------------------------------------
-    # IClassifier
-    # ------------------------------------------------------------------
-
     def fit(
         self,
         x_train: list[str],
@@ -89,7 +85,6 @@ class LlamaSpamClassifier(IClassifier):
             label_int = self._prompt_builder.parse(response)
  
             if label_int is None:
-                # Fallback oparty na threshold — domyślnie ham (0) gdy threshold >= 0.5
                 label_int = 1 if self._config.threshold < 0.5 else 0
                 logger.debug("Fallback threshold dla tekstu %d → %d", i, label_int)
  
@@ -107,10 +102,6 @@ class LlamaSpamClassifier(IClassifier):
     def classify_batch(self, texts: list[str]) -> list[str]:
         """Klasyfikuje listę wiadomości, zwraca etykiety słowne."""
         return [_INT_TO_LABEL[p] for p in self.predict(texts)]
-
-    # ------------------------------------------------------------------
-    # Prywatne
-    # ------------------------------------------------------------------
 
     def _load_adapters(self, adapter_path: str) -> None:
         path = Path(adapter_path)

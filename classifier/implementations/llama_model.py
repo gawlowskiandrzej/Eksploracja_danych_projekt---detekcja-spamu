@@ -29,10 +29,6 @@ class LlamaModel(IModel):
         self._model: Optional[AutoModelForCausalLM] = None
         self._tokenizer: Optional[AutoTokenizer] = None
 
-    # ------------------------------------------------------------------
-    # IModel
-    # ------------------------------------------------------------------
-
     def load(self, config: ModelConfig) -> None:
         """Ładuje tokenizer i model; stosuje kwantyzację NF4 gdy load_in_4bit=True."""
         model_path = str(config.local_dir)
@@ -40,7 +36,6 @@ class LlamaModel(IModel):
 
         self._tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-        # Llama 3 nie definiuje pad_token — ustaw na eos_token
         if self._tokenizer.pad_token is None:
             self._tokenizer.pad_token    = self._tokenizer.eos_token
             self._tokenizer.pad_token_id = self._tokenizer.eos_token_id
@@ -50,12 +45,9 @@ class LlamaModel(IModel):
         self._model = AutoModelForCausalLM.from_pretrained(
             model_path,
             quantization_config=bnb_config,
-            # device_map="auto" automatycznie rozkłada model na dostępne GPU/CPU;
-            # gdy load_in_4bit=True jest wymagane przez bitsandbytes
             device_map="auto" if config.load_in_4bit else config.device,
             torch_dtype=torch.float16 if not config.load_in_4bit else None,
         )
-        # Wyłącz KV-cache — wymagane przez gradient checkpointing podczas treningu
         self._model.config.use_cache = False
         logger.info("Model załadowany pomyślnie")
 
@@ -73,8 +65,6 @@ class LlamaModel(IModel):
             max_length=2048,
         ).to(self._model.device)
 
-        # do_sample=False → greedy decoding, deterministyczne wyniki
-        # temperature z ClassifyConfig steruje ewentualnym samplingiem
         do_sample = config.temperature < 1.0 and config.temperature > 0.0
 
         gen_config = GenerationConfig(
@@ -108,23 +98,15 @@ class LlamaModel(IModel):
     def is_loaded(self) -> bool:
         return self._model is not None and self._tokenizer is not None
 
-    # ------------------------------------------------------------------
-    # Properties dla QLoRATrainer
-    # ------------------------------------------------------------------
-
     @property
     def model(self) -> AutoModelForCausalLM:
         self._require_loaded()
-        return self._model  # type: ignore[return-value]
+        return self._model
 
     @property
     def tokenizer(self) -> AutoTokenizer:
         self._require_loaded()
-        return self._tokenizer  # type: ignore[return-value]
-
-    # ------------------------------------------------------------------
-    # Prywatne
-    # ------------------------------------------------------------------
+        return self._tokenizer
 
     @staticmethod
     def _build_bnb_config() -> BitsAndBytesConfig:
@@ -133,7 +115,7 @@ class LlamaModel(IModel):
             load_in_4bit=True,
             bnb_4bit_compute_dtype=torch.float16,
             bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,   # ~0.4 bpp oszczędności VRAM
+            bnb_4bit_use_double_quant=True,
         )
 
     def _require_loaded(self) -> None:

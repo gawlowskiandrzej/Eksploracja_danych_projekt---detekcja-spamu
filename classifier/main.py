@@ -90,7 +90,7 @@ def main() -> None:
             csv_path=Path(f"data/llm_spam_email_dataset.csv"),
             text_column="email_text",
             label_column="label",
-            test_size=0.2,
+            test_size=0.8,
             seed=42,
         )
     all_results = {}
@@ -135,18 +135,19 @@ def main() -> None:
         max_new_tokens=32,
     )
     loader = CsvDataLoader()
-    raw_data = loader.load(config3)
+    config_setup = config3
+    raw_data = loader.load(config_setup)
     #data = loader.preprocess(raw_data, config1)
-    df_train, df_test = loader.split(raw_data, config3)
-    x_test, y_test = loader.to_lists(df_test, config3)
+    df_train, df_test = loader.split(raw_data, config_setup)
+    x_test, y_test = loader.to_lists(df_test, config_setup)
     llama = setup_model(llama_cfg)
     prompt_builder = LlamaSpamPromptBuilder()
     # train(llama, prompt_builder, train_df, test_df, llama_train_cfg, config1)
     
     classifier = LlamaSpamClassifier(llama, prompt_builder, classify_cfg)
     classifier.fit([], [], adapter_path=f"{llama_train_cfg.output_dir}/final")
-    x_test, y_test = loader.to_lists(df_test, config3)
-    sample = 50
+    x_test, y_test = loader.to_lists(df_test, config_setup)
+    sample = 80
     y_pred = classifier.predict(x_test[:sample])
     print(classification_report(y_test[:sample], y_pred, target_names=["ham", "spam"]))
 if __name__ == "__main__":

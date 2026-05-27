@@ -30,7 +30,6 @@ _CLASSIFICATION_TEMPLATE = (
     "<|start_header_id|>assistant<|end_header_id|>\n\n"
 )
 
-# Przykład treningowy — prompt + oczekiwana odpowiedź + token końca
 _TRAINING_TEMPLATE = (
     "<|begin_of_text|>"
     "<|start_header_id|>system<|end_header_id|>\n\n"
@@ -60,10 +59,6 @@ class LlamaSpamPromptBuilder(IPromptBuilder):
     ) -> None:
         self._system = system_prompt
         self._max_text_chars = max_text_chars
-
-    # ------------------------------------------------------------------
-    # IPromptBuilder
-    # ------------------------------------------------------------------
 
     def build(self, text: str) -> str:
         """
@@ -101,7 +96,6 @@ class LlamaSpamPromptBuilder(IPromptBuilder):
         if first_word in _WORD_TO_INT:
             return _WORD_TO_INT[first_word]
  
-        # Fallback: szukaj etykiety gdziekolwiek w odpowiedzi
         for word, int_label in _WORD_TO_INT.items():
             if word in cleaned:
                 logger.debug("Etykieta '%s' znaleziona heurystycznie w: %r", word, response)
@@ -109,10 +103,6 @@ class LlamaSpamPromptBuilder(IPromptBuilder):
  
         logger.warning("Nie można sparsować odpowiedzi modelu: %r", response)
         return None
-
-    # ------------------------------------------------------------------
-    # Metody pomocnicze
-    # ------------------------------------------------------------------
 
     def build_batch(self, texts: list[str]) -> list[str]:
         """Wygodna metoda budująca listę promptów na raz."""

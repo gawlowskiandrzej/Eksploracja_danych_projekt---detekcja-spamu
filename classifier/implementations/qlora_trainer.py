@@ -33,8 +33,6 @@ class QLoRATrainer(ITrainer):
         trainer.train(df_train, df_val, config)
         trainer.save("checkpoints/final")
     """
-
-    # Warstwy projekcji Llama 3 do fine-tuningu przez LoRA
     _DEFAULT_TARGET_MODULES = [
         "q_proj", "k_proj", "v_proj", "o_proj",
         "gate_proj", "up_proj", "down_proj",
@@ -49,10 +47,6 @@ class QLoRATrainer(ITrainer):
         self._prompt_builder = prompt_builder
         self._trainer: Optional[SFTTrainer] = None
 
-    # ------------------------------------------------------------------
-    # ITrainer
-    # ------------------------------------------------------------------
-
     def train(self, train_data, val_data, config: TrainingConfig, data_config: DataConfig) -> None:
         """
         Uruchamia QLoRA fine-tuning.
@@ -65,13 +59,11 @@ class QLoRATrainer(ITrainer):
         model    = self._llama.model
         tokenizer = self._llama.tokenizer
 
-        # 1. Gradient checkpointing + cast niekvantyzowanych warstw do fp32
         model = prepare_model_for_kbit_training(
             model,
             use_gradient_checkpointing=True,
         )
 
-        # 2. Adaptery LoRA z parametrami z TrainingConfig
         lora_cfg = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
             r=config.lora_r,
@@ -82,19 +74,14 @@ class QLoRATrainer(ITrainer):
         )
         model = get_peft_model(model, lora_cfg)
         model.print_trainable_parameters()
-
-        # 3. Datasety HuggingFace (każdy wiersz = gotowy prompt treningowy)
         train_dataset = self._build_dataset(train_data, data_config)
         val_dataset   = self._build_dataset(val_data, data_config)
 
-        # 4. SFTConfig — używa bezpośrednio pól z TrainingConfig
         sft_cfg = SFTConfig(
             output_dir=config.output_dir,
             num_train_epochs=config.epochs,
             per_device_train_batch_size=config.batch_size,
             per_device_eval_batch_size=config.batch_size,
-            # Efektywny batch = batch_size * gradient_accumulation_steps
-            # Przy batch_size=4 i acc=4 → efektywnie 16 przykładów/krok
             gradient_accumulation_steps=4,
             learning_rate=config.learning_rate,
             lr_scheduler_type="cosine",
@@ -108,7 +95,7 @@ class QLoRATrainer(ITrainer):
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
-            optim="paged_adamw_8bit",   # zoptymalizowany pod QLoRA
+            optim="paged_adamw_8bit",
             report_to="none",
             dataset_text_field="text"
         )
@@ -151,10 +138,6 @@ class QLoRATrainer(ITrainer):
         metrics = self._trainer.evaluate()
         self._trainer.log_metrics("eval", metrics)
         return metrics
-
-    # ------------------------------------------------------------------
-    # Prywatne
-    # ------------------------------------------------------------------
 
     def _build_dataset(self, df, config: DataConfig) -> Dataset:
         """

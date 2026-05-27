@@ -56,9 +56,7 @@ class CsvDataLoader(IDataLoader):
         texts = data[config.text_column].tolist()
         col = data[config.label_column]
         if col.dtype == object:
-            # stringi: 'spam' → 1, 'ham' → 0
             labels = col.map({"spam": 1, "ham": 0}).astype(int).tolist()
         else:
-            # już inty
             labels = col.astype(int).tolist()
         return texts, labels
