@@ -4,3 +4,5 @@ matplotlib
 scikit-learn
 python-dotenv
 kagglehub[pandas-datasets]
+google-genai
+groq
