@@ -3,7 +3,7 @@
 # ==============================================================================
 # USTAWIENIA PROJEKTU
 # ==============================================================================
-TARGET_PER_CLASS = 3000         
+TARGET_PER_CLASS = 5000         
 OUTPUT_FILE = "phishing_dataset_v3.jsonl" 
 LANGUAGE = "języku angielskim"
 
