@@ -3,8 +3,8 @@
 # ==============================================================================
 # USTAWIENIA PROJEKTU
 # ==============================================================================
-TARGET_PER_CLASS = 3000         
-OUTPUT_FILE = "data/phishing_dataset_v3.jsonl" 
+TARGET_PER_CLASS = 5000         
+OUTPUT_FILE = "phishing_dataset_v3.jsonl" 
 LANGUAGE = "języku angielskim"
 
 # Liczba wiadomości generowanych w jednym zapytaniu do API (Batching)
