@@ -153,11 +153,16 @@ def main() -> None:
     data = loader.preprocess(raw_data, config_setup)
     df_train, df_test = loader.split(raw_data, config_setup)
     llama = setup_model(llama_cfg)
-    # Aby wytrenować model, odkomentuj poniższą linię:
-    # train(llama, prompt_builder, df_train, df_test, llama_train_cfg, config_setup)
+    adapter_path = Path(f"{llama_train_cfg.output_dir}/final")
+    
+    if adapter_path.exists():
+        print(f"Adapter już istnieje pod ścieżką: {adapter_path}. Pomijam trening.")
+    else:
+        print(f"Adapter nie istnieje. Uruchamiam trening i zapiszę do: {adapter_path}.")
+        train(llama, prompt_builder, df_train, df_test, llama_train_cfg, config_setup)
     
     classifier = LlamaSpamClassifier(llama, prompt_builder, classify_cfg)
-    classifier.fit([], [], adapter_path=f"{llama_train_cfg.output_dir}/final")
+    classifier.fit([], [], adapter_path=str(adapter_path))
     x_test, y_test = loader.to_lists(df_test, config_setup)
     sample = 90  # liczba próbek testowych używanych do oceny
     y_pred = classifier.predict(x_test[:sample])

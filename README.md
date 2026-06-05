@@ -50,11 +50,7 @@ Przed uruchomieniem treningu wykonaj następujące kroki:
 2. Ustaw ścieżkę do pliku datasetu w `config1.csv_path`.
 3. Określ rozkład danych treningowych i testowych poprzez parametr
    `config1.test_size` (np. `0.2` = 20% danych testowych).
-4. Odkomentuj linię:
-   `train(llama, prompt_builder, df_train, df_test, llama_train_cfg, config_setup)`
-   aby uruchomić trening.
-5. Po zakończeniu treningu zakomentuj powyższą linię i upewnij się, że
-   `adapter_path` w wywołaniu `classifier.fit(..., adapter_path=...)`
-   wskazuje na katalog z zapisanym adapterem/fintunowanym modelem.
-6. Próbkę testową do oceny definiuje zmienna `sample` w `main()`.
+4. Po zakończeniu treningu model zapiszę się pod ścieżka
+   `adapter_path`
+5. Próbkę testową do oceny definiuje zmienna `sample` w `main()`.
 
