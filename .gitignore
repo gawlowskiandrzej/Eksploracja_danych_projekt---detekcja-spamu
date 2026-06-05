@@ -4,3 +4,5 @@ __pycache__/
 .ipynb_checkpoints/
 experimental_gen_data/
 venv/
+llama_model/
+checkpoints/

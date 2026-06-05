@@ -39,11 +39,24 @@ class CsvDataLoader(IDataLoader):
             )
         return df
 
-    def split(self, data, config: DataConfig):
-        return train_test_split(
-            data["text"],
-            data["label"],
+    def split(self, data, config: DataConfig) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Zwraca (df_train, df_test) — oba jako DataFrame z oryginalnymi kolumnami."""
+        train, test = train_test_split(
+            data,
             test_size=config.test_size,
             random_state=config.seed,
-            stratify=data["label"],
+            stratify=data[config.label_column],
         )
+        return train.reset_index(drop=True), test.reset_index(drop=True)
+    def to_lists(self, data: pd.DataFrame, config: DataConfig) -> tuple[list[str], list[int]]:
+        """
+        Konwertuje DataFrame na (texts, labels: spam=1, ham=0).
+        Obsługuje etykiety jako int (1/0) i string ('spam'/'ham').
+        """
+        texts = data[config.text_column].tolist()
+        col = data[config.label_column]
+        if col.dtype == object:
+            labels = col.map({"spam": 1, "ham": 0}).astype(int).tolist()
+        else:
+            labels = col.astype(int).tolist()
+        return texts, labels

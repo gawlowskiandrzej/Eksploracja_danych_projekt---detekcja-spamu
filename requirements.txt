@@ -6,3 +6,10 @@ python-dotenv
 kagglehub[pandas-datasets]
 google-genai
 groq
+torch
+transformers
+datasets
+peft
+trl
+accelerate
+bitsandbytes
