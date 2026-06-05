@@ -74,6 +74,14 @@ def print_results_table(all_results: dict):
 
 
 def main() -> None:
+    # --- TRAINING SETUP ---
+    # 1. Podaj lokalną ścieżkę do modelu LLaMA w llama_cfg.local_dir.
+    # 2. Podaj ścieżkę do datasetu w config1.csv_path.
+    # 3. Określ proporcję zbioru testowego przez test_size (np. 0.2 = 20%).
+    # 4. Po wytrenowaniu zakomentuj poniższy wywołanie train() i upewnij się,
+    #    że adapter_path w classifier.fit() wskazuje na prawidłowy katalog z
+    #    zapisanym adapterem/fintunowanym modelem.
+    # 5. Próbka testowa do oceny jest określona przez zmienną sample.
     config1 = DataConfig(
             csv_path=Path(f"data/llm_spam_email_dataset.csv"),
             text_column="email_text",
@@ -145,12 +153,13 @@ def main() -> None:
     data = loader.preprocess(raw_data, config_setup)
     df_train, df_test = loader.split(raw_data, config_setup)
     llama = setup_model(llama_cfg)
-    #train(llama, prompt_builder, df_train, df_test, llama_train_cfg, config_setup)
+    # Aby wytrenować model, odkomentuj poniższą linię:
+    # train(llama, prompt_builder, df_train, df_test, llama_train_cfg, config_setup)
     
     classifier = LlamaSpamClassifier(llama, prompt_builder, classify_cfg)
     classifier.fit([], [], adapter_path=f"{llama_train_cfg.output_dir}/final")
     x_test, y_test = loader.to_lists(df_test, config_setup)
-    sample = 90
+    sample = 90  # liczba próbek testowych używanych do oceny
     y_pred = classifier.predict(x_test[:sample])
     print(classification_report(y_test[:sample], y_pred, target_names=["ham", "spam"]))
 if __name__ == "__main__":

@@ -40,3 +40,21 @@ Kolejne zbiory z Kaggle dodaje sie przez dopisanie nowego slownika z
 `source: "kaggle"`, `kaggle_dataset`, `file_name`, `text_col`, `label_col`,
 `spam_values` i `ham_values`. Wszystkie tabelki analityczne iteruja po
 `loaded_datasets`, wiec nowy zbior automatycznie pojawi sie w wynikach.
+
+## Trening modelu LLaMA / QLoRA
+
+W pliku `classifier/main.py` znajduje sie logika trenowania i ładowania modelu.
+Przed uruchomieniem treningu wykonaj następujące kroki:
+
+1. Ustaw lokalną ścieżkę do modelu LLaMA w `llama_cfg.local_dir`.
+2. Ustaw ścieżkę do pliku datasetu w `config1.csv_path`.
+3. Określ rozkład danych treningowych i testowych poprzez parametr
+   `config1.test_size` (np. `0.2` = 20% danych testowych).
+4. Odkomentuj linię:
+   `train(llama, prompt_builder, df_train, df_test, llama_train_cfg, config_setup)`
+   aby uruchomić trening.
+5. Po zakończeniu treningu zakomentuj powyższą linię i upewnij się, że
+   `adapter_path` w wywołaniu `classifier.fit(..., adapter_path=...)`
+   wskazuje na katalog z zapisanym adapterem/fintunowanym modelem.
+6. Próbkę testową do oceny definiuje zmienna `sample` w `main()`.
+
