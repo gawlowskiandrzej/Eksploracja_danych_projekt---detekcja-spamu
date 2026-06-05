@@ -55,7 +55,7 @@ class LlamaSpamPromptBuilder(IPromptBuilder):
     def __init__(
         self,
         system_prompt: str = _SYSTEM_PROMPT,
-        max_text_chars: int = 1024,
+        max_text_chars: int = 400,
     ) -> None:
         self._system = system_prompt
         self._max_text_chars = max_text_chars

@@ -11,7 +11,7 @@ class CsvDataLoader(IDataLoader):
     tekstu i podział na zbiory treningowy i testowy.
     """
     def load(self, config: DataConfig):
-        df = pd.read_csv(config.csv_path)
+        df = pd.read_csv(config.csv_path, sep=config.separator)
         return df
 
     def preprocess(self, data, config: DataConfig):

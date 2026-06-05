@@ -6,6 +6,7 @@ class DataConfig:
     csv_path: Path
     text_column: str = "text"
     label_column: str = "label"
+    separator: str = ","
     test_size: float = 0.2
     seed: int = 42
 
@@ -22,7 +23,7 @@ class TrainingConfig:
     batch_size: int = 4
     lora_r: int = 16
     lora_alpha: int = 32
-    output_dir: str = "checkpoints"
+    output_dir: str = "checkpoints-qualified,1h"
 
 @dataclass
 class ClassifyConfig:

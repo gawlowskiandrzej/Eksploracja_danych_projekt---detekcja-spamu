@@ -7,6 +7,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
+import torch
+from transformers import AutoTokenizer
 
 from classifier.implementations.classifier import LlamaSpamClassifier
 from classifier.implementations.prompt_builder import LlamaSpamPromptBuilder
@@ -73,26 +75,27 @@ def print_results_table(all_results: dict):
 
 def main() -> None:
     config1 = DataConfig(
-            csv_path=Path(f"data/spam_email_dataset_half.csv"),
-            text_column="email_text",
-            label_column="label",
-            test_size=0.2,
-            seed=42,
-        )
-    config2 = DataConfig(
-            csv_path=Path(f"data/email_dataset_100k.csv"),
-            text_column="body_plain",
-            label_column="label",
-            test_size=0.2,
-            seed=42,
-        )
-    config3 = DataConfig(
             csv_path=Path(f"data/llm_spam_email_dataset.csv"),
             text_column="email_text",
             label_column="label",
-            test_size=0.8,
+            test_size=0.2,
             seed=42,
         )
+    # config2 = DataConfig(
+    #         csv_path=Path(f"data/email_dataset_100k.csv"),
+    #         text_column="body_plain",
+    #         label_column="label",
+    #         test_size=0.2,
+    #         seed=42,
+    #     )
+    # config3 = DataConfig(
+    #         csv_path=Path(f"generated_dataset_v1.csv"),
+    #         text_column="email_text",
+    #         label_column="label",
+    #         separator=";",
+    #         test_size=0.2,
+    #         seed=42,
+    #     )
     all_results = {}
     # for config in [config1, config2, config3]:
     #     print(f"Evaluating classifiers on {config.csv_path.name}...")
@@ -122,12 +125,12 @@ def main() -> None:
         load_in_4bit=True,
     )
     llama_train_cfg = TrainingConfig(
-        epochs=1,
-        learning_rate=2e-4,
-        batch_size=8,
-        lora_r=16,
-        lora_alpha=32,
-        output_dir="checkpoints",
+        epochs=1,            
+        learning_rate=2e-4,     
+        batch_size=4,           
+        lora_r=8,             
+        lora_alpha=16,          
+        output_dir="checkpoints-qualified,1h",
     )
     classify_cfg = ClassifyConfig(
         threshold=0.5,
@@ -135,19 +138,19 @@ def main() -> None:
         max_new_tokens=32,
     )
     loader = CsvDataLoader()
-    config_setup = config3
-    raw_data = loader.load(config_setup)
-    #data = loader.preprocess(raw_data, config1)
-    df_train, df_test = loader.split(raw_data, config_setup)
-    x_test, y_test = loader.to_lists(df_test, config_setup)
-    llama = setup_model(llama_cfg)
     prompt_builder = LlamaSpamPromptBuilder()
-    # train(llama, prompt_builder, train_df, test_df, llama_train_cfg, config1)
+
+    config_setup = config1
+    raw_data = loader.load(config_setup)
+    data = loader.preprocess(raw_data, config_setup)
+    df_train, df_test = loader.split(raw_data, config_setup)
+    llama = setup_model(llama_cfg)
+    #train(llama, prompt_builder, df_train, df_test, llama_train_cfg, config_setup)
     
     classifier = LlamaSpamClassifier(llama, prompt_builder, classify_cfg)
     classifier.fit([], [], adapter_path=f"{llama_train_cfg.output_dir}/final")
     x_test, y_test = loader.to_lists(df_test, config_setup)
-    sample = 80
+    sample = 90
     y_pred = classifier.predict(x_test[:sample])
     print(classification_report(y_test[:sample], y_pred, target_names=["ham", "spam"]))
 if __name__ == "__main__":

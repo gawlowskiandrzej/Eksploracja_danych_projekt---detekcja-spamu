@@ -34,8 +34,7 @@ class QLoRATrainer(ITrainer):
         trainer.save("checkpoints/final")
     """
     _DEFAULT_TARGET_MODULES = [
-        "q_proj", "k_proj", "v_proj", "o_proj",
-        "gate_proj", "up_proj", "down_proj",
+        "q_proj", "v_proj"
     ]
 
     def __init__(
@@ -82,22 +81,26 @@ class QLoRATrainer(ITrainer):
             num_train_epochs=config.epochs,
             per_device_train_batch_size=config.batch_size,
             per_device_eval_batch_size=config.batch_size,
+            gradient_checkpointing_kwargs={"use_reentrant": False},
             gradient_accumulation_steps=4,
             learning_rate=config.learning_rate,
             lr_scheduler_type="cosine",
+            max_length = 256,
+            packing = False,
             warmup_ratio=0.03,
             weight_decay=0.001,
             fp16=False,                                            
             bf16=torch.cuda.is_available(), 
-            logging_steps=25,
-            eval_strategy="epoch",
+            logging_steps=100,
+            eval_strategy="no",
             save_strategy="epoch",
-            load_best_model_at_end=True,
+            load_best_model_at_end=False,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
             optim="paged_adamw_8bit",
             report_to="none",
-            dataset_text_field="text"
+            dataset_text_field="text",           
+            gradient_checkpointing=True,
         )
 
         self._trainer = SFTTrainer(
@@ -107,7 +110,8 @@ class QLoRATrainer(ITrainer):
             train_dataset=train_dataset,
             eval_dataset=val_dataset
         )
-
+        batch = next(iter(self._trainer.get_train_dataloader()))
+        print(f"Batch shape: {batch['input_ids'].shape}")
         logger.info("Rozpoczynam trening …")
         result = self._trainer.train()
         logger.info(
