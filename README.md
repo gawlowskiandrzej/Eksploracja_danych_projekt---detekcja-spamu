@@ -1,56 +1,40 @@
 # Eksploracja_danych_projekt---detekcja-spamu
 
-## Instalacja zaleznosci
-
-Zainstaluj pakiety w tym samym interpreterze Pythona, ktorego uzywasz do
-uruchamiania projektu:
+## Zainstaluj pakiety
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-Jesli blad `No module named peft` pojawia sie w notebooku, sprawdz interpreter
-aktywny w kernelu:
+## Zbiory danych
+Zbiory danych są zapisane w `data`
+- jakościowy 7000 danych
+- jakościowy pochodzący z innego źródła 100
+- niejakościowy
 
-```python
-import sys
-print(sys.executable)
-```
+## Dokumentacja i wyniki trenowania
+Zapisane sa w `documentation`
 
-Nastepnie uruchom instalacje przez ten sam interpreter albo zmien kernel
-notebooka na srodowisko, w ktorym zaleznosci sa juz zainstalowane.
+## Analiza eksploracyjna
+Uruchamiana jest w notatnika jupyter notebook. Skonfigurowane sa 3 datasety:
+- jakościowy 7000 danych
+- jakościowy pochodzący z innego źródła 100
+- niejakościowy
 
-## Pobranie datasetu Kaggle
+W celu wykonania analizy uruchom notatnik powinny pokazać się tabelę z wynikami miar
 
-Kod pobierania znajduje sie w notebooku `spam_dataset_quality_analysis.ipynb`.
-Uzywa `kagglehub` do pobrania najnowszej wersji datasetu
-`ssssws/spam-email-detection-dataset-clean-and-ml-ready` i zapisuje kopie w
-`data/spam_email_dataset.csv`.
-
-## Dodawanie wielu datasetow
-
-Datasety konfiguruje sie w liscie `DATASET_CONFIGS` w notebooku. Dla kazdego
-zbioru mozna wskazac zrodlo, plik, kolumne z trescia (`text_col`), kolumne z
-klasa (`label_col`) oraz mapowanie etykiet przez `spam_values` i `ham_values`.
-Dzieki temu obslugiwane sa etykiety liczbowe (`1`/`0`), logiczne
-(`true`/`false`) oraz tekstowe (`spam`/`ham`). Po wczytaniu kazdy zbior ma
-ujednolicone kolumny `text`, `label` oraz boolowska flage `is_spam`.
-
-Kolejne zbiory z Kaggle dodaje sie przez dopisanie nowego slownika z
-`source: "kaggle"`, `kaggle_dataset`, `file_name`, `text_col`, `label_col`,
-`spam_values` i `ham_values`. Wszystkie tabelki analityczne iteruja po
-`loaded_datasets`, wiec nowy zbior automatycznie pojawi sie w wynikach.
+## Generacja danych jakościowych
+Spójrz w README w `data_generator`
 
 ## Trening modelu LLaMA / QLoRA
 
-W pliku `classifier/main.py` znajduje sie logika trenowania i ładowania modelu.
+W pliku `classifier/run_llama_classifier.py` znajduje sie logika trenowania, ładowania oraz jego testowania.
 Przed uruchomieniem treningu wykonaj następujące kroki:
 
-1. Ustaw lokalną ścieżkę do modelu LLaMA w `llama_cfg.local_dir`.
-2. Ustaw ścieżkę do pliku datasetu w `config1.csv_path`.
-3. Określ rozkład danych treningowych i testowych poprzez parametr
-   `config1.test_size` (np. `0.2` = 20% danych testowych).
-4. Po zakończeniu treningu model zapiszę się pod ścieżka
-   `adapter_path`
-5. Próbkę testową do oceny definiuje zmienna `sample` w `main()`.
+1. Ustaw parametry aplikacji takie jak ścieżka do modelu LLaMA oraz parametry trenowania w `classifier\config.py`.
+2. Upewnij się że odpowiedni zbiór danych jest ustawiony jako zbiór treningowy i testowy również sprawdź jego podział `classifier\config.py`.
+3. Uruchom `classifier\run_llama_classifier.py` komendą `python -X utf8 .\classifier\run_llama_classifier.py` rozpocznie się w ten sposób proces uczenia
+4. Po zakończeniu treningu model zapiszę się pod ścieżka określoną w pliku `classifier\config.py` llama_train_cfg.output_dir
+5. Następnie uruchomi się proces testowania 
+6. Po zakończonych testach pojawią się miary pozwalające określić dokładność modelu
 

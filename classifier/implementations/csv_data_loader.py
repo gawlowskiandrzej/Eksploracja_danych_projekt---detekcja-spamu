@@ -24,16 +24,14 @@ class CsvDataLoader(IDataLoader):
                 f"CSV musi zawierać kolumny '{config.text_column}' i '{config.label_column}'"
             )
 
-        df = df[[config.text_column, config.label_column]].rename(
-            columns={config.text_column: "text", config.label_column: "label"}
+        df = df[[config.text_column, config.label_column]]
+        df[config.text_column] = df[config.text_column].astype(str).str.strip()
+        df[config.label_column] = (
+            df[config.label_column].astype(str).str.strip().replace({"spam": "1", "ham": "0"})
         )
-        df["text"] = df["text"].astype(str).str.strip()
-        df["label"] = (
-            df["label"].astype(str).str.strip().replace({"spam": "1", "ham": "0"})
-        )
-        df = df[df["text"].ne("")].copy()
-        df["label"] = df["label"].map({"1": 1, "0": 0})
-        if df["label"].isna().any():
+        df = df[df[config.text_column].ne("")].copy()
+        df[config.label_column] = df[config.label_column].map({"1": 1, "0": 0})
+        if df[config.label_column].isna().any():
             raise ValueError(
                 "Nieprawidłowe etykiety w zbiorze danych. Oczekiwano 0/1, spam/ham."
             )
