@@ -16,7 +16,7 @@ second_dataset = DataConfig(
             text_column="email_text",
             label_column="label",
             separator=",",
-            test_size=0.2,
+            test_size=0.90,
             seed=42,
         )
 

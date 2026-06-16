@@ -7,7 +7,7 @@ from classifier.implementations.csv_data_loader import CsvDataLoader
 from classifier.implementations.llama_model import LlamaModel
 from classifier.implementations.qlora_trainer import QLoRATrainer
 from classifier.models.classes import TrainingConfig, DataConfig, ModelConfig
-from config import main_dataset, llama_cfg, classify_cfg, llama_train_cfg
+from config import main_dataset, llama_cfg, classify_cfg, llama_train_cfg,second_dataset
 
 #python -X utf8 .\classifier\run_llama_classifier.py 
 import os
@@ -26,9 +26,10 @@ def train(llama: LlamaModel, prompt_builder: LlamaSpamPromptBuilder, df_train: p
 def main() -> None:
     loader = CsvDataLoader()
     prompt_builder = LlamaSpamPromptBuilder()
-    raw_data = loader.load(main_dataset)
-    data = loader.preprocess(raw_data, main_dataset)
-    df_train, df_test = loader.split(data, main_dataset)
+    dataset = main_dataset
+    raw_data = loader.load(dataset)
+    data = loader.preprocess(raw_data, dataset)
+    df_train, df_test = loader.split(data, dataset)
     llama = setup_model(llama_cfg)
     adapter_path = Path(f"{llama_train_cfg.output_dir}/final")
     
@@ -36,11 +37,11 @@ def main() -> None:
         print(f"Adapter już istnieje pod ścieżką: {adapter_path}. Pomijam trening.")
     else:
         print(f"Adapter nie istnieje. Uruchamiam trening i zapiszę do: {adapter_path}.")
-        train(llama, prompt_builder, df_train, df_test, llama_train_cfg, main_dataset)
+        train(llama, prompt_builder, df_train, df_test, llama_train_cfg, dataset)
     
     classifier = LlamaSpamClassifier(llama, prompt_builder, classify_cfg)
     classifier.fit([], [], adapter_path=str(adapter_path))
-    x_test, y_test = loader.to_lists(df_test, main_dataset)
+    x_test, y_test = loader.to_lists(df_test, dataset)
     y_pred = classifier.predict(x_test)
     print(classification_report(y_test, y_pred, target_names=["ham", "spam"]))
 if __name__ == "__main__":
